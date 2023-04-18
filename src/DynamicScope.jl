@@ -1,7 +1,6 @@
 module DynamicScope
 
 function exprtreemap(f, expr)
-    expr isa Expr || return expr
     expr = f(expr)
     expr isa Expr || return expr
     Expr(expr.head, (exprtreemap(f, a) for a in expr.args)...)
@@ -45,12 +44,13 @@ macro dyn(fn)
     kwargs = Dict{Symbol, Any}()
     # collect and strip all the default arguments (put in caller context)
     # collect all the argument names (provided variables)
+    fname = fn.args[1].args[1]
     fn.args[1] = exprtreemap(fn.args[1]) do expr
         if expr isa Expr && expr.head == :kw
             kwargs[expr.args[1]] = expr.args[2]
             expr = expr.args[1]
         end
-        if expr isa Symbol
+        if expr isa Symbol && expr != fname
             push!(provides, expr)
         end
         return expr
@@ -60,7 +60,7 @@ macro dyn(fn)
     first = true
     # collect @requires and @provides symbol names
     fn.args[2] = exprtreemap(fn.args[2]) do expr
-        expr isa Expr || return expr, ()
+        expr isa Expr || return expr
         # expand other macros to collect their @requires
         if expr.head == :macrocall && expr.args[1] ∉ (Symbol("@requires"), Symbol("@provides"))
             expr = macroexpand(__module__, expr; recursive=false)
@@ -83,7 +83,6 @@ macro dyn(fn)
         return expr
     end
     call = fn.args[1]
-    fname = call.args[1]
     # add required variables (that aren't already arguments) as extra function arguments
     append!(call.args, setdiff(requires, argprovides))
     pargs = iskwcall(call) ? call.args[3:end] : call.args[2:end]
@@ -102,8 +101,10 @@ macro dyn(fn)
             end
             # generate let binding and function call
             leteqs = [:($id = $var) for (id, var) in bindings]
+            # the function arguments that were not bound by the let are implicit requires
+            impl_req = setdiff($argprovides, keys(bindings))
             esc(quote
-                @requires $($requires...)
+                @requires $($requires...) $(impl_req...)
                 let $(leteqs...)
                     $$(QuoteNode(call))
                 end

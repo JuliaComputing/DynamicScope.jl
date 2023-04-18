@@ -44,8 +44,21 @@ end
     return @inner()
 end
 
+@dyn function ckt_inner(resistance)
+    return resistance
+end
+
+@dyn function ckt_outer()
+    @ckt_inner()
+end
+
+@dyn function ckt_mostouter(resistance=4)
+    @ckt_outer()
+end
+
 a = 1
 b = 2
+@testset "dynamic tests" begin
 @test @simple() == 1
 @test @nestedvar() == (1, 2)
 @test @args() == (1, 2, 3, 4)
@@ -60,4 +73,6 @@ b = 2
 @test @selfarg(c=4) == 4
 let c=8
     @test @selfarg() == 16
+end
+@test @ckt_mostouter() == 4
 end
