@@ -2,7 +2,6 @@ module DynamicScope
 
 function exprtreemap(f, expr)
     expr isa Expr || return expr
-    println(expr)
     expr = f(expr)
     expr isa Expr || return expr
     Expr(expr.head, (exprtreemap(f, a) for a in expr.args)...)
@@ -48,7 +47,6 @@ macro dyn(fn)
     # collect all the argument names (provided variables)
     fn.args[1] = exprtreemap(fn.args[1]) do expr
         if expr isa Expr && expr.head == :kw
-            println(expr)
             kwargs[expr.args[1]] = expr.args[2]
             expr = expr.args[1]
         end
@@ -89,7 +87,6 @@ macro dyn(fn)
     # add required variables (that aren't already arguments) as extra function arguments
     append!(call.args, setdiff(requires, argprovides))
     pargs = iskwcall(call) ? call.args[3:end] : call.args[2:end]
-    println(provides, requires, kwargs)
     esc(quote
         $fn
         macro $fname(args...)
