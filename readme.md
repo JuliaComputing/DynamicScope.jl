@@ -12,6 +12,7 @@ So the focus is to be efficient and simple rather than provide a user-friendly A
 end
 
 @dyn function outer(a=2a)
+    @requires a
     @provides c
     c = 10+a
     return @inner()
