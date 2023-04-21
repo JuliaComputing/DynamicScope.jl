@@ -56,6 +56,19 @@ end
     @ckt_outer()
 end
 
+@dyn function topsort(a=b+2, b=4)
+    return a, b
+end
+
+@dyn function topsortself(b=b+2)
+    @requires b
+    return b
+end
+
+@dyn function topsortcyclic(b=a+2, a=b+2)
+    return b
+end
+
 a = 1
 b = 2
 @testset "dynamic tests" begin
@@ -75,4 +88,7 @@ let c=8
     @test @selfarg() == 16
 end
 @test @ckt_mostouter() == 4
+@test @topsort() == (6, 4)
+@test @topsortself() == 4
+@test_throws ErrorException macroexpand(@__MODULE__, :(@topsortcyclic))
 end

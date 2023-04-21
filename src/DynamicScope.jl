@@ -1,5 +1,32 @@
 module DynamicScope
 
+# source: https://rosettacode.org/wiki/Topological_sort#Julia
+function toposort(data::Dict{T,Set{T}}) where T
+    data = copy(data)
+    for (k, v) in data
+        delete!(v, k)
+    end
+    extraitems = setdiff(reduce(∪, values(data); init=Set{T}()), keys(data))
+    for item in extraitems
+        data[item] = Set{T}()
+    end
+    rst = Vector{T}()
+    while true
+        ordered = Set(item for (item, dep) in data if isempty(dep))
+        if isempty(ordered) break end
+        append!(rst, ordered)
+        data = Dict{T,Set{T}}(item => setdiff(dep, ordered) for (item, dep) in data if item ∉ ordered)
+    end
+    isempty(data) || error("a cyclic dependency exists amongst $(keys(data))")
+    return rst
+end
+
+function exprsymbols(expr)
+    expr isa Symbol && return Set{Symbol}([expr])
+    expr isa Expr || return Set{Symbol}()
+    return Set{Symbol}(reduce(∪, (exprsymbols(a) for a in expr.args); init=Set{Symbol}()))
+end
+
 function exprtreemap(f, expr)
     expr = f(expr)
     expr isa Expr || return expr
@@ -99,8 +126,14 @@ macro dyn(fn)
                     bindings[$pargs[i]] = expr
                 end
             end
+            # topologically sort the bindings
+            deps = Dict{Symbol, Set{Symbol}}()
+            for (id, expr) in bindings
+                deps[id] = $exprsymbols(expr)
+            end
+            letnames = $toposort(deps)
             # generate let binding and function call
-            leteqs = [:($id = $var) for (id, var) in bindings]
+            leteqs = [:($id = $(bindings[id])) for id in letnames if haskey(bindings, id)]
             # the function arguments that were not bound by the let are implicit requires
             impl_req = setdiff($argprovides, keys(bindings))
             esc(quote
