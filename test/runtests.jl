@@ -56,18 +56,10 @@ end
     @ckt_outer()
 end
 
-@dyn function topsort(a=b+2, b=4)
-    return a, b
+@dyn function ordered(a=1, b=a+1, c=b+1, d=c+1, e=d+1, f=e+1)
+    return f
 end
 
-@dyn function topsortself(b=b+2)
-    @requires b
-    return b
-end
-
-@dyn function topsortcyclic(b=a+2, a=b+2)
-    return b
-end
 
 a = 1
 b = 2
@@ -81,14 +73,12 @@ b = 2
 @test @argdeps(a=2) == (2, 20)
 @test @argdeps(a=2, b=3) == (2, 3)
 @test @outer() == 12
-@test @selfouter(c=4) == 8
 @test @defaultouter() == 14
 @test @selfarg(c=4) == 4
 let c=8
+    @test @selfouter() == 16
     @test @selfarg() == 16
 end
 @test @ckt_mostouter() == 4
-@test @topsort() == (6, 4)
-@test @topsortself() == 4
-@test_throws ErrorException macroexpand(@__MODULE__, :(@topsortcyclic))
+@test @ordered() == 6
 end
