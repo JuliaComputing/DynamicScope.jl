@@ -23,22 +23,25 @@ Declare variables that are provided to dynamic calls
 macro provides(args...) end
 
 function buildcall(args, call, requires, provides, bindings, pargs)
-    # take default expressions
-    # and override with macro arguments
+    # build let bindings for argument overrides
+    # and remove them from the default bindings
+    arglet = Expr[]
     for (i, expr) in enumerate(args)
         if expr isa Expr && expr.head == :(=)
-            bindings[expr.args[1]] = expr.args[2]
+            push!(arglet, expr)
+            delete!(bindings, expr.args[1])
         else
-            bindings[pargs[i]] = expr
+            push!(arglet, :(($(pargs[i]) = $(expr))))
+            delete!(bindings, pargs[i])
         end
     end
-    # generate let binding and function call
+    # generate let binding for default expressions
     leteqs = [:($id = $(bindings[id])) for id in provides if haskey(bindings, id)]
     # bindings that are implicitly required because they don't have a default or override
-    impl_req = setdiff(provides, keys(bindings))
+    impl_req = setdiff(provides, keys(bindings), (e.args[1] for e in arglet))
     quote
         @requires $(requires...) $(impl_req...)
-        let $(leteqs...)
+        let $(arglet...), $(leteqs...)
             $(call)
         end
     end

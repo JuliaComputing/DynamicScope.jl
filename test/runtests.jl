@@ -60,6 +60,11 @@ end
     return f
 end
 
+@dyn function orderedwrapper()
+    @provides c
+    c = 8
+    @ordered(f=c)
+end
 
 a = 1
 b = 2
@@ -78,7 +83,9 @@ b = 2
 let c=8
     @test @selfouter() == 16
     @test @selfarg() == 16
+    @test @ordered(f=c) == 8
 end
 @test @ckt_mostouter() == 4
 @test @ordered() == 6
+@test @orderedwrapper() == 8
 end
