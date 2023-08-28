@@ -1,7 +1,7 @@
 name = "DynamicScope"
 uuid = "21d0a5ee-021b-4147-8d5c-120bff51c915"
 authors = ["Pepijn de Vos <pepijn.devos@juliacomputing.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [compat]
 julia = "1"
