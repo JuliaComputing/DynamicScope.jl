@@ -108,6 +108,7 @@ macro dyn(fn)
         return expr
     end
     call = fn.args[1]
+    call.args[1] = GlobalRef(__module__, call.args[1])
     # add required variables (that aren't already arguments) as extra function arguments
     append!(call.args, setdiff(requires, argprovides))
     pargs = iskwcall(call) ? call.args[3:end] : call.args[2:end]
